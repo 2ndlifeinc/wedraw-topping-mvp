@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>목재 맞춤 커팅 견적기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        #viewer-container { width: 100%; height: 400px; border-radius: 1rem; overflow: hidden; }
+    </style>
+</head>
+<body class="bg-white">
+    <main class="min-h-screen p-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+            <!-- 헤더 -->
+            <div class="text-center space-y-2">
+                <h1 class="text-4xl font-bold text-gray-900">목재 맞춤 커팅 견적기</h1>
+                <p class="text-gray-600">원하는 치수와 가공을 선택하고 실시간으로 견적을 확인하세요</p>
+            </div>
+            
+            <!-- 메인 콘텐츠 -->
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- 왼쪽: 입력 폼 -->
+                <div class="space-y-6">
+                    <!-- 치수 입력 -->
+                    <div class="bg-white rounded-2xl border-2 border-gray-200 p-6 space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-900">치수 입력</h2>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">가로 (mm)</label>
+                                <input type="number" id="width" value="100" min="50" max="3000"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">세로 (mm)</label>
+                                <input type="number" id="height" value="100" min="50" max="3000"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">두께 (mm)</label>
+                                <select id="thickness"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                                    <option value="12">12mm</option>
+                                    <option value="15">15mm</option>
+                                    <option value="18" selected>18mm</option>
+                                    <option value="21">21mm</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 가공 선택 -->
+                    <div class="bg-white rounded-2xl border-2 border-gray-200 p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-semibold text-gray-900">엣지 가공</h2>
+                            <span id="edge-price" class="text-blue-600 font-medium">+2,000원</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">가공 종류</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button data-edge="none" class="edge-btn py-2 px-3 rounded-lg border-2 transition-all border-gray-200 hover:border-gray-300">
+                                    없음
+                                </button>
+                                <button data-edge="round" class="edge-btn py-2 px-3 rounded-lg border-2 transition-all border-blue-500 bg-blue-50 text-blue-700">
+                                    라운드
+                                </button>
+                                <button data-edge="bevel" class="edge-btn py-2 px-3 rounded-lg border-2 transition-all border-gray-200 hover:border-gray-300">
+                                    사선
+                                </button>
+                            </div>
+                        </div>
+                        <div id="direction-group">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">가공 방향</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button data-dir="top" class="dir-btn py-2 px-3 rounded-lg border-2 transition-all border-gray-200 hover:border-gray-300">
+                                    위
+                                </button>
+                                <button data-dir="bottom" class="dir-btn py-2 px-3 rounded-lg border-2 transition-all border-blue-500 bg-blue-50 text-blue-700">
+                                    아래
+                                </button>
+                                <button data-dir="both" class="dir-btn py-2 px-3 rounded-lg border-2 transition-all border-gray-200 hover:border-gray-300">
+                                    양쪽
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 견적 -->
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm mb-1">총 견적</p>
+                                <p id="total-price" class="text-3xl font-bold">2,500원</p>
+                            </div>
+                            <button class="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all">
+                                주문하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 오른쪽: 3D 뷰어 -->
+                <div class="space-y-4">
+                    <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                        <p class="text-sm text-amber-900">
+                            <strong>💡 사용법:</strong> 마우스로 드래그하여 회전, 스크롤로 확대/축소
+                        </p>
+                    </div>
+                    <div id="viewer-container" class="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 상태
+        let state = {
+            width: 100,
+            height: 100,
+            thickness: 18,
+            edgeType: 'round',
+            edgeDirection: 'bottom'
+        };
+
+        // 가격 계산
+        const WOOD_PRICE_PER_SQM = 50000;
+        const EDGE_PRICE = 2000;
+
+        function calculatePrice() {
+            const area = (state.width * state.height) / 1000000;
+            const basePrice = area * WOOD_PRICE_PER_SQM;
+            const edgePrice = state.edgeType !== 'none' ? EDGE_PRICE : 0;
+            return Math.round(basePrice + edgePrice);
+        }
+
+        function updatePrice() {
+            const price = calculatePrice();
+            document.getElementById('total-price').textContent = price.toLocaleString() + '원';
+            document.getElementById('edge-price').style.display = state.edgeType === 'none' ? 'none' : 'block';
+        }
+
+        // Three.js 세팅
+        const container = document.getElementById('viewer-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf9fafb);
+
+        const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(3, 2, 3);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        // 조명
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 10, 5);
+        scene.add(directionalLight);
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        pointLight.position.set(-10, -10, -5);
+        scene.add(pointLight);
+
+        // 컨트롤
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+        controls.minDistance = 2;
+        controls.maxDistance = 10;
+
+        // 3D 객체
+        let woodMesh, edgeLine;
+
+        function updateMesh() {
+            // 기존 메시 제거
+            if (woodMesh) scene.remove(woodMesh);
+            if (edgeLine) scene.remove(edgeLine);
+
+            const w = state.width / 50;
+            const h = state.height / 50;
+            const t = state.thickness / 50;
+
+            // 박스
+            const geometry = new THREE.BoxGeometry(w, t, h);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xd4a574,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            woodMesh = new THREE.Mesh(geometry, material);
+            scene.add(woodMesh);
+
+            // 엣지 라인
+            if (state.edgeType !== 'none') {
+                const edges = new THREE.EdgesGeometry(geometry);
+                const lineColor = state.edgeType === 'round' ? 0x3b82f6 : 0xf59e0b;
+                const lineMaterial = new THREE.LineBasicMaterial({ color: lineColor, linewidth: 2 });
+                edgeLine = new THREE.LineSegments(edges, lineMaterial);
+                scene.add(edgeLine);
+            }
+        }
+
+        // 애니메이션
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 리사이즈
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // 이벤트 리스너
+        document.getElementById('width').addEventListener('input', (e) => {
+            state.width = Number(e.target.value);
+            updateMesh();
+            updatePrice();
+        });
+
+        document.getElementById('height').addEventListener('input', (e) => {
+            state.height = Number(e.target.value);
+            updateMesh();
+            updatePrice();
+        });
+
+        document.getElementById('thickness').addEventListener('change', (e) => {
+            state.thickness = Number(e.target.value);
+            updateMesh();
+        });
+
+        // 엣지 타입 버튼
+        document.querySelectorAll('.edge-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.edge-btn').forEach(b => {
+                    b.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    b.classList.add('border-gray-200');
+                });
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                btn.classList.remove('border-gray-200');
+                
+                state.edgeType = btn.dataset.edge;
+                document.getElementById('direction-group').style.display = state.edgeType === 'none' ? 'none' : 'block';
+                updateMesh();
+                updatePrice();
+            });
+        });
+
+        // 방향 버튼
+        document.querySelectorAll('.dir-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.dir-btn').forEach(b => {
+                    b.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    b.classList.add('border-gray-200');
+                });
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                btn.classList.remove('border-gray-200');
+                
+                state.edgeDirection = btn.dataset.dir;
+            });
+        });
+
+        // 초기 렌더링
+        updateMesh();
+        updatePrice();
+    </script>
+</body>
+</html>
