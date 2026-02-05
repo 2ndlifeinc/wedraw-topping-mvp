@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>목재 맞춤 커팅 견적기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        #viewer-container { width: 100%; height: 400px; border-radius: 1rem; overflow: hidden; }
+        .step-hidden { display: none; }
+        .processing-item.locked { opacity: 0.6; cursor: not-allowed; }
+        .processing-item.locked img { filter: grayscale(100%); }
+        .processing-item.selected { border-color: #3b82f6; background-color: #eff6ff; }
+    </style>
+</head>
+<body class="bg-white">
+    <main class="min-h-screen p-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+            <!-- 헤더 -->
+            <div class="text-center space-y-2">
+                <h1 class="text-4xl font-bold text-gray-900">목재 맞춤 커팅 견적기</h1>
+                <p class="text-gray-600">원하는 치수와 가공을 선택하고 실시간으로 견적을 확인하세요</p>
+            </div>
+            
+            <!-- 스텝 인디케이터 -->
+            <div class="flex items-center justify-center gap-4">
+                <div id="step-indicator-1" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">
+                    <span>1</span>
+                    <span>치수 입력</span>
+                </div>
+                <div class="w-8 h-0.5 bg-gray-300"></div>
+                <div id="step-indicator-2" class="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-600 rounded-lg font-semibold">
+                    <span>2</span>
+                    <span>가공 선택</span>
+                </div>
+            </div>
+            
+            <!-- Step 1: 치수 입력 -->
+            <div id="step-1" class="grid md:grid-cols-2 gap-8">
+                <!-- 왼쪽: 입력 폼 -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl border-2 border-gray-200 p-6 space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-900">치수 입력</h2>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">가로 (mm)</label>
+                                <input type="number" id="width" value="100" min="50" max="3000"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">세로 (mm)</label>
+                                <input type="number" id="height" value="100" min="50" max="3000"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">두께 (mm)</label>
+                                <select id="thickness"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                                    <option value="12">12mm</option>
+                                    <option value="15">15mm</option>
+                                    <option value="18" selected>18mm</option>
+                                    <option value="21">21mm</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="next-step-1" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-all text-lg">
+                        다음 단계: 가공 선택 →
+                    </button>
+                </div>
+                
+                <!-- 오른쪽: 3D 뷰어 -->
+                <div class="space-y-4">
+                    <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                        <p class="text-sm text-amber-900">
+                            <strong>💡 사용법:</strong> 마우스로 드래그하여 회전, 스크롤로 확대/축소
+                        </p>
+                    </div>
+                    <div id="viewer-container" class="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200"></div>
+                </div>
+            </div>
+            
+            <!-- Step 2: 가공 선택 -->
+            <div id="step-2" class="step-hidden space-y-6">
+                <div class="bg-white/80 backdrop-blur-xl rounded-3xl p-8 border-2 border-gray-200">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-11 h-11 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl flex items-center justify-center shadow-sm">
+                            <span class="text-2xl">🔨</span>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold">가공 옵션 추가</h2>
+                            <p class="text-sm text-gray-500">원하는 가공을 추가하세요 <span class="text-gray-400">(선택사항)</span></p>
+                        </div>
+                    </div>
+                    
+                    <div id="processing-grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        <!-- 가공 옵션들이 여기 추가됨 -->
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button id="prev-step-2" class="flex-1 bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-semibold hover:bg-gray-300 transition-all">
+                        ← 이전 단계
+                    </button>
+                    <button id="finish-btn" class="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl font-semibold hover:opacity-90 transition-all">
+                        견적 확인 →
+                    </button>
+                </div>
+                
+                <!-- 견적 -->
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 text-sm mb-1">총 견적</p>
+                            <p id="total-price" class="text-3xl font-bold">2,500원</p>
+                            <p id="processing-count" class="text-blue-100 text-sm mt-1">가공 0개 선택</p>
+                        </div>
+                        <button class="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all">
+                            주문하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 상태
+        let state = {
+            width: 100,
+            height: 100,
+            thickness: 18,
+            selectedProcessing: [],
+            currentStep: 1
+        };
+
+        // 가공 옵션 데이터
+        const processingOptions = [
+            { id: 'sanding', name: '샌딩', price: 3000, locked: true },
+            { id: 'corner-rounding', name: '코너 라운딩', price: 2000, best: true },
+            { id: 'edge-round', name: '엣지 라운드/사선', price: 2000, locked: true },
+            { id: 'center-circle', name: '기본 원형 가공', price: 3000 },
+            { id: 'center-rectangle', name: '기본 사각 가공', price: 3000 },
+            { id: 'corner-circle', name: '코너 원형 컷팅', price: 2500 },
+            { id: 'corner-rectangle', name: '코너 사각 컷팅', price: 2500 },
+            { id: 'edge-circle', name: '엣지 원형 컷팅', price: 3000 },
+            { id: 'edge-rectangle', name: '엣지 사각 컷팅', price: 3000 },
+            { id: 'shape-cutting', name: '모양 컷팅', price: 5000 },
+            { id: 'screw-drilling', name: '피스 타공', price: 2000, locked: true },
+            { id: 'sink-hinge', name: '씽크 경첩 가공', price: 4000, locked: true },
+            { id: 'top-groove', name: '윗면 홈파기', price: 3500 },
+            { id: 'half-lap', name: '반턱 가공', price: 3500 },
+            { id: 'side-groove', name: '옆면 홈파기', price: 3500, locked: true }
+        ];
+
+        // 가격 계산
+        const WOOD_PRICE_PER_SQM = 50000;
+
+        function calculatePrice() {
+            const area = (state.width * state.height) / 1000000;
+            const basePrice = area * WOOD_PRICE_PER_SQM;
+            const processingPrice = state.selectedProcessing.reduce((sum, id) => {
+                const opt = processingOptions.find(o => o.id === id);
+                return sum + (opt?.price || 0);
+            }, 0);
+            return Math.round(basePrice + processingPrice);
+        }
+
+        function updatePrice() {
+            const price = calculatePrice();
+            document.getElementById('total-price').textContent = price.toLocaleString() + '원';
+            document.getElementById('processing-count').textContent = 
+                `가공 ${state.selectedProcessing.length}개 선택`;
+        }
+
+        // 가공 옵션 그리드 생성
+        function renderProcessingGrid() {
+            const grid = document.getElementById('processing-grid');
+            grid.innerHTML = '';
+            
+            processingOptions.forEach(opt => {
+                const item = document.createElement('button');
+                item.className = `processing-item group relative flex flex-col rounded-2xl transition-all duration-200 overflow-hidden bg-white border-2 border-gray-200 hover:border-gray-400 hover:shadow-lg hover:-translate-y-1 ${opt.locked ? 'locked' : ''}`;
+                
+                if (state.selectedProcessing.includes(opt.id)) {
+                    item.classList.add('selected');
+                }
+                
+                item.innerHTML = `
+                    <div class="relative w-full aspect-[4/3] overflow-hidden bg-white flex items-center justify-center">
+                        <div class="text-4xl">${getEmojiForProcessing(opt.id)}</div>
+                        ${opt.locked ? `
+                            <div class="absolute top-1.5 left-1.5 w-[22px] h-[22px] bg-amber-400 rounded-full flex items-center justify-center shadow-md">
+                                <span class="text-xs">🔒</span>
+                            </div>
+                        ` : ''}
+                        ${opt.best ? `
+                            <div class="absolute top-1 right-1">
+                                <span class="px-1.5 py-0.5 rounded-full shadow-md bg-blue-600 text-white text-xs">BEST</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="py-2.5 px-2.5 border-t border-gray-100 bg-white">
+                        <p class="text-sm leading-tight line-clamp-2 text-center ${opt.locked ? 'text-gray-500' : 'text-gray-900'}">${opt.name}</p>
+                        <p class="text-xs text-gray-500 text-center mt-1">+${opt.price.toLocaleString()}원</p>
+                    </div>
+                `;
+                
+                if (!opt.locked) {
+                    item.addEventListener('click', () => toggleProcessing(opt.id));
+                }
+                
+                grid.appendChild(item);
+            });
+        }
+
+        function getEmojiForProcessing(id) {
+            const emojiMap = {
+                'sanding': '📃',
+                'corner-rounding': '🔘',
+                'edge-round': '📐',
+                'center-circle': '⭕',
+                'center-rectangle': '▭',
+                'corner-circle': '🔵',
+                'corner-rectangle': '🔲',
+                'edge-circle': '⚪',
+                'edge-rectangle': '⬜',
+                'shape-cutting': '✂️',
+                'screw-drilling': '🔩',
+                'sink-hinge': '🔧',
+                'top-groove': '➖',
+                'half-lap': '📊',
+                'side-groove': '🔀'
+            };
+            return emojiMap[id] || '🛠️';
+        }
+
+        function toggleProcessing(id) {
+            if (state.selectedProcessing.includes(id)) {
+                state.selectedProcessing = state.selectedProcessing.filter(i => i !== id);
+            } else {
+                state.selectedProcessing.push(id);
+            }
+            renderProcessingGrid();
+            updatePrice();
+        }
+
+        // Three.js 세팅
+        const container = document.getElementById('viewer-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf9fafb);
+
+        const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(3, 2, 3);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 10, 5);
+        scene.add(directionalLight);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+        controls.minDistance = 2;
+        controls.maxDistance = 10;
+
+        let woodMesh, edgeLine;
+
+        function updateMesh() {
+            if (woodMesh) scene.remove(woodMesh);
+            if (edgeLine) scene.remove(edgeLine);
+
+            const w = state.width / 50;
+            const h = state.height / 50;
+            const t = state.thickness / 50;
+
+            const geometry = new THREE.BoxGeometry(w, t, h);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xd4a574,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            woodMesh = new THREE.Mesh(geometry, material);
+            scene.add(woodMesh);
+
+            const edges = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: state.selectedProcessing.length > 0 ? 0x3b82f6 : 0x999999,
+                linewidth: 2 
+            });
+            edgeLine = new THREE.LineSegments(edges, lineMaterial);
+            scene.add(edgeLine);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // 스텝 전환
+        function showStep(step) {
+            state.currentStep = step;
+            document.getElementById('step-1').classList.toggle('step-hidden', step !== 1);
+            document.getElementById('step-2').classList.toggle('step-hidden', step !== 2);
+            
+            document.getElementById('step-indicator-1').classList.toggle('bg-blue-600', step === 1);
+            document.getElementById('step-indicator-1').classList.toggle('text-white', step === 1);
+            document.getElementById('step-indicator-1').classList.toggle('bg-gray-200', step !== 1);
+            document.getElementById('step-indicator-1').classList.toggle('text-gray-600', step !== 1);
+            
+            document.getElementById('step-indicator-2').classList.toggle('bg-blue-600', step === 2);
+            document.getElementById('step-indicator-2').classList.toggle('text-white', step === 2);
+            document.getElementById('step-indicator-2').classList.toggle('bg-gray-200', step !== 2);
+            document.getElementById('step-indicator-2').classList.toggle('text-gray-600', step !== 2);
+        }
+
+        // 이벤트 리스너
+        document.getElementById('width').addEventListener('input', (e) => {
+            state.width = Number(e.target.value);
+            updateMesh();
+            updatePrice();
+        });
+
+        document.getElementById('height').addEventListener('input', (e) => {
+            state.height = Number(e.target.value);
+            updateMesh();
+            updatePrice();
+        });
+
+        document.getElementById('thickness').addEventListener('change', (e) => {
+            state.thickness = Number(e.target.value);
+            updateMesh();
+        });
+
+        document.getElementById('next-step-1').addEventListener('click', () => {
+            showStep(2);
+            renderProcessingGrid();
+        });
+
+        document.getElementById('prev-step-2').addEventListener('click', () => {
+            showStep(1);
+        });
+
+        document.getElementById('finish-btn').addEventListener('click', () => {
+            alert(`총 견적: ${calculatePrice().toLocaleString()}원\n선택된 가공: ${state.selectedProcessing.length}개`);
+        });
+
+        // 초기 렌더링
+        updateMesh();
+        updatePrice();
+    </script>
+</body>
+</html>
