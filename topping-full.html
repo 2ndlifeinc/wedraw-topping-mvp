@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>위드로우 토핑 - 목재 맞춤 커팅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .step-hidden { display: none; }
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-backdrop.active { display: flex; }
+        #viewer-container { width: 100%; height: 280px; border-radius: 1rem; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <main class="min-h-screen p-4 md:p-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+            <div class="text-center space-y-2">
+                <h1 class="text-3xl font-bold text-gray-900">위드로우 온라인 목공소</h1>
+                <p class="text-gray-600">필요한 목재를 주문하고, 집으로 편하게 배송받으세요</p>
+            </div>
+            
+            <!-- Step 1: 목재 선택 -->
+            <div id="step-1">
+                <div class="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-200">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-11 h-11 bg-blue-100 rounded-2xl flex items-center justify-center">
+                            <span class="text-2xl">🪵</span>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold">목재 선택</h2>
+                            <p class="text-sm text-gray-500">목재 종류를 구체적 선택하세요</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">두께</label>
+                            <select id="thickness" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg">
+                                <option value="15">15mm</option>
+                                <option value="18">18mm</option>
+                                <option value="21">21mm</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">폭 (mm)</label>
+                            <input type="number" id="width" value="300" min="100" max="2000" 
+                                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">길이 (mm)</label>
+                            <input type="number" id="length" value="300" min="100" max="2000"
+                                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg">
+                        </div>
+                        
+                        <button id="btn-next-1" class="w-full bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-semibold transition-all">
+                            ✏️ 목재 선택하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: 가공 옵션 -->
+            <div id="step-2" class="step-hidden">
+                <div class="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-200">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-11 h-11 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl flex items-center justify-center">
+                            <span class="text-2xl">🔨</span>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold">가공 옵션 추가</h2>
+                            <p class="text-sm text-gray-500">원하는 가공을 추가하세요 <span class="text-gray-400">(선택사항)</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
+                        <button class="processing-opt group relative flex flex-col rounded-2xl overflow-hidden bg-white border-2 border-gray-200 hover:border-gray-400 hover:shadow-lg transition-all">
+                            <div class="w-full aspect-[4/3] bg-white flex items-center justify-center">
+                                <span class="text-4xl">⭕</span>
+                            </div>
+                            <div class="py-2.5 px-2.5 border-t border-gray-100">
+                                <p class="text-sm text-center">기본 원형 가공</p>
+                            </div>
+                        </button>
+                        <button class="group relative flex flex-col rounded-2xl overflow-hidden bg-gray-100 border-2 border-gray-200 opacity-60">
+                            <div class="w-full aspect-[4/3] bg-white flex items-center justify-center">
+                                <span class="text-4xl grayscale">▭</span>
+                            </div>
+                            <div class="py-2.5 px-2.5 border-t border-gray-100">
+                                <p class="text-sm text-center text-gray-500">기본 사각 가공</p>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div id="selected-processings" class="space-y-2 mb-4"></div>
+                    
+                    <button id="btn-finish" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-xl font-semibold transition-all">
+                        견적 확인 →
+                    </button>
+                </div>
+                
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 text-sm mb-1">총 견적</p>
+                            <p id="total-price" class="text-3xl font-bold">2,000원</p>
+                            <p id="processing-count" class="text-blue-100 text-sm mt-1">가공 0개 선택</p>
+                        </div>
+                        <button class="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all">
+                            주문하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 원형 가공 모달 -->
+    <div id="modal-circle" class="modal-backdrop">
+        <div class="bg-white rounded-3xl max-w-xl w-full max-h-[85vh] flex flex-col border-2 border-gray-200 overflow-hidden m-4">
+            <div class="p-5 pb-2 border-b border-gray-100 flex-shrink-0">
+                <h2 class="font-semibold text-lg mb-0.5">기본 원형 가공</h2>
+                <p class="text-sm text-gray-500">가공 옵션을 설정하세요</p>
+            </div>
+            
+            <div class="p-5 pt-0 overflow-y-auto flex-1">
+                <div class="space-y-4">
+                    <div class="flex gap-1 p-1 bg-gray-100 rounded-xl mt-4">
+                        <button type="button" class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all text-gray-500">
+                            🖼️ 가공안내
+                        </button>
+                        <button type="button" class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all bg-white text-gray-900 shadow-sm">
+                            📦 3D 미리보기
+                        </button>
+                    </div>
+                    
+                    <div id="viewer-container" class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200"></div>
+                    
+                    <div class="bg-amber-50 rounded-2xl p-3 border border-amber-200">
+                        <div class="flex gap-2.5">
+                            <div class="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-white text-xs">!</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-amber-900"><strong>확인사항</strong><br>가공 종류를 선택하고 치수를 입력하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="circles-list" class="space-y-3">
+                        <!-- 원형 입력 필드들이 여기 추가됨 -->
+                    </div>
+                    
+                    <button id="btn-add-circle" class="w-full bg-gray-900 hover:bg-black text-white px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2">
+                        <span>➕</span> 가공 추가
+                    </button>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">요청 사항 (선택)</label>
+                        <textarea id="circle-notes" class="w-full border-2 border-gray-200 rounded-xl p-3 text-sm min-h-[80px] resize-none" placeholder="특별한 요청사항이 있으시면 입력해주세요"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-5 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 flex-shrink-0">
+                <button id="btn-modal-cancel" class="px-4 py-3 rounded-xl border-2 border-gray-300 font-semibold hover:bg-gray-50 transition-all">나가기</button>
+                <button id="btn-modal-apply" class="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all">적용하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let state = {
+            thickness: 15,
+            width: 300,
+            length: 300,
+            circles: [],
+            currentStep: 1
+        };
+
+        let scene, camera, renderer, controls, woodMesh;
+
+        function initViewer() {
+            const container = document.getElementById('viewer-container');
+            if (!container || renderer) return;
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf9fafb);
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(3, 2, 3);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enablePan = false;
+            
+            updateMesh();
+            animate();
+        }
+
+        function updateMesh() {
+            if (!scene) return;
+            if (woodMesh) scene.remove(woodMesh);
+            
+            const w = state.width / 100;
+            const l = state.length / 100;
+            const t = state.thickness / 100;
+            
+            const geometry = new THREE.BoxGeometry(w, t, l);
+            const material = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
+            woodMesh = new THREE.Mesh(geometry, material);
+            scene.add(woodMesh);
+        }
+
+        function animate() {
+            if (!renderer) return;
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function calculatePrice() {
+            const area = (state.width * state.length) / 1000000;
+            const basePrice = area * 50000;
+            const circlePrice = state.circles.length * 3000;
+            return Math.round(basePrice + circlePrice);
+        }
+
+        function updatePrice() {
+            document.getElementById('total-price').textContent = calculatePrice().toLocaleString() + '원';
+            document.getElementById('processing-count').textContent = `가공 ${state.circles.length}개 선택`;
+        }
+
+        function addCircleInput() {
+            const id = Date.now();
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-xl border-2 border-gray-200 p-3 space-y-3';
+            div.dataset.circleId = id;
+            
+            div.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-1.5">
+                            <input type="radio" name="circle-type-${id}" value="cutting" checked class="w-4 h-4">
+                            <span class="text-sm">컷팅 가공</span>
+                        </label>
+                        <label class="flex items-center gap-1.5">
+                            <input type="radio" name="circle-type-${id}" value="pocket" class="w-4 h-4">
+                            <span class="text-sm">포켓 가공</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-blue-600">3,000원</span>
+                        <button class="btn-remove-circle w-8 h-8 rounded-md hover:bg-red-50 hover:text-red-600 transition-all" data-id="${id}">🗑️</button>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <label class="text-sm text-blue-600 font-medium whitespace-nowrap w-10 mt-2.5">[위치]</label>
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex items-center gap-1">
+                            <span class="text-sm">가로(a)</span>
+                            <input type="number" class="circle-x flex-1 border-2 border-gray-200 rounded-lg px-3 py-2 text-center text-sm" value="${state.width/2}" min="50" max="${state.width-50}">
+                        </div>
+                        <span class="text-xs text-gray-400 mt-0.5">범위 50~${state.width-50}mm</span>
+                    </div>
+                    <span class="text-sm mt-2.5">X</span>
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex items-center gap-1">
+                            <span class="text-sm">세로(b)</span>
+                            <input type="number" class="circle-y flex-1 border-2 border-gray-200 rounded-lg px-3 py-2 text-center text-sm" value="${state.length/2}" min="50" max="${state.length-50}">
+                        </div>
+                        <span class="text-xs text-gray-400 mt-0.5">범위 50~${state.length-50}mm</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm text-blue-600 font-medium whitespace-nowrap w-10">[원]</label>
+                    <span class="text-sm">지름(c)</span>
+                    <input type="number" class="circle-d border-2 border-gray-200 rounded-lg px-3 py-2 text-center text-sm w-24" value="75" min="6" max="200">
+                    <span class="text-xs text-gray-400">범위 6~200mm</span>
+                </div>
+            `;
+            
+            document.getElementById('circles-list').appendChild(div);
+            
+            div.querySelector('.btn-remove-circle').addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                div.remove();
+                state.circles = state.circles.filter(c => c.id != id);
+                updatePrice();
+            });
+        }
+
+        document.getElementById('btn-next-1').addEventListener('click', () => {
+            state.thickness = Number(document.getElementById('thickness').value);
+            state.width = Number(document.getElementById('width').value);
+            state.length = Number(document.getElementById('length').value);
+            state.currentStep = 2;
+            document.getElementById('step-1').classList.add('step-hidden');
+            document.getElementById('step-2').classList.remove('step-hidden');
+            updatePrice();
+        });
+
+        document.querySelector('.processing-opt').addEventListener('click', () => {
+            document.getElementById('modal-circle').classList.add('active');
+            setTimeout(initViewer, 100);
+            addCircleInput();
+        });
+
+        document.getElementById('btn-add-circle').addEventListener('click', () => {
+            addCircleInput();
+        });
+
+        document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+            document.getElementById('modal-circle').classList.remove('active');
+        });
+
+        document.getElementById('btn-modal-apply').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('#circles-list > div');
+            state.circles = [];
+            inputs.forEach(div => {
+                const x = div.querySelector('.circle-x').value;
+                const y = div.querySelector('.circle-y').value;
+                const d = div.querySelector('.circle-d').value;
+                const type = div.querySelector('input[type=radio]:checked').value;
+                state.circles.push({ x, y, d, type });
+            });
+            document.getElementById('modal-circle').classList.remove('active');
+            updatePrice();
+            
+            const container = document.getElementById('selected-processings');
+            container.innerHTML = `
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
+                    <p class="text-sm font-medium">⭕ 기본 원형 가공 (${state.circles.length}개)</p>
+                </div>
+            `;
+        });
+
+        document.getElementById('btn-finish').addEventListener('click', () => {
+            alert(`총 견적: ${calculatePrice().toLocaleString()}원\n원형 가공: ${state.circles.length}개`);
+        });
+
+        updatePrice();
+    </script>
+</body>
+</html>
